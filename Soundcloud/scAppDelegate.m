@@ -7,8 +7,9 @@
 //
 
 #import "scAppDelegate.h"
-
+#import "SCUI.h"
 #import "scViewController.h"
+#import "scAudioPlayer.h"
 
 @implementation scAppDelegate
 
@@ -16,13 +17,19 @@
 {
     self.window = [[UIWindow alloc] initWithFrame:[[UIScreen mainScreen] bounds]];
     // Override point for customization after application launch.
-    if ([[UIDevice currentDevice] userInterfaceIdiom] == UIUserInterfaceIdiomPhone) {
-        self.viewController = [[scViewController alloc] initWithNibName:@"scViewController_iPhone" bundle:nil];
-    } else {
-        self.viewController = [[scViewController alloc] initWithNibName:@"scViewController_iPad" bundle:nil];
-    }
-    self.window.rootViewController = self.viewController;
+    self.viewController = [[scViewController alloc] initWithNibName:@"scViewController" bundle:nil];
+    
+    UINavigationController *nc = [[UINavigationController alloc] initWithRootViewController:self.viewController];
+    [[self.viewController navigationController] setNavigationBarHidden:YES animated:NO];
+    
+    self.window.rootViewController = nc;
     [self.window makeKeyAndVisible];
+    
+    NSError *setCategoryErr = nil;
+    NSError *activationErr  = nil;
+    [[AVAudioSession sharedInstance] setCategory: AVAudioSessionCategoryPlayback error:&setCategoryErr];
+    [[AVAudioSession sharedInstance] setActive:YES error:&activationErr];
+    
     return YES;
 }
 
@@ -51,6 +58,61 @@
 - (void)applicationWillTerminate:(UIApplication *)application
 {
     // Called when the application is about to terminate. Save data if appropriate. See also applicationDidEnterBackground:.
+}
+
++ (void)initialize;
+{
+    [SCSoundCloud  setClientID:@"bdacc1c417260a7b78438097e3a3c795"
+                        secret:@"84ac8251b4cebdd31b84d733e9ac5057"
+                   redirectURL:[NSURL URLWithString:@"soundcloudchallenge://oauth"]];
+}
+
+// remote control
+- (BOOL) canBecomeFirstResponder
+{
+    return YES;
+}
+
+- (void) remoteControlReceivedWithEvent:(UIEvent*) aEvent
+{
+	if (aEvent.type == UIEventTypeRemoteControl)
+	{
+        scAudioPlayer *player = [scAudioPlayer GetSingleton];
+		switch (aEvent.subtype)
+		{
+			case UIEventSubtypeRemoteControlPlay:
+                if (player)
+                    [player playPause];
+                else
+                {
+                    [player playTrack:0];
+                }
+                
+				break;
+			case UIEventSubtypeRemoteControlPause:
+                if (player)
+                    [player playPause];
+                
+				break;
+			case UIEventSubtypeRemoteControlStop:
+                if (player)
+                    [player stop];
+                
+				break;
+			case UIEventSubtypeRemoteControlTogglePlayPause:
+                [player playPause];
+                
+				break;
+			case UIEventSubtypeRemoteControlNextTrack:
+                [player nextTrack];
+				break;
+			case UIEventSubtypeRemoteControlPreviousTrack:
+                [player lastTrack];
+				break;
+			default:
+				return;
+		}
+	}
 }
 
 @end
